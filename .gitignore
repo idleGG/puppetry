@@ -1,0 +1,16 @@
+# un-halt.com 使用独立 git 仓库跟踪，不纳入本仓库
+/src/un-halt.com/
+
+# Node.js
+node_modules/
+
+# 日志
+*.log
+
+# 编辑器
+.vscode/
+.idea/
+
+# 系统垃圾
+.DS_Store
+Thumbs.db

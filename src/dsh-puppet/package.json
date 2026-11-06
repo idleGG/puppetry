@@ -1,0 +1,51 @@
+{
+  "name": "dsh-puppet",
+  "version": "0.3.0",
+  "description": "Puppet: the Puppetry controlled end (受控端) for DeepSeek Harness — QR / token pairing, heartbeat mailbox, end-to-end encrypted commands, keep-awake, and a bilingual local setup page.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "scripts",
+    "docs",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "puppet",
+    "puppetry",
+    "remote-control",
+    "end-to-end-encryption",
+    "keep-awake",
+    "qr-pairing"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": "^0.2.1-rc.3"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh": ">=0.2.1-rc.3 <0.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "MIT"
+}
