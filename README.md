@@ -35,21 +35,21 @@ dsh plugin --profile <profile> add link:/path/to/src/dsh-puppet
 
 安装后**完全退出并重开 DSH**。详细安装、更新、发布与公网部署见 [src/dsh-puppet/docs/UPDATE-AND-PUBLISH.md](src/dsh-puppet/docs/UPDATE-AND-PUBLISH.md)。
 
-## 项目展望：应用场景（Muse 类个人助理）
+## 项目展望：应用场景（个人助理类）
 
-> 本节为**说明性**内容。它描述在 Puppetry 三端模型之上，把「集中式常驻 agent 服务（Muse 类）」分散到用户自己的固定 PC 端的应用形态与可能场景。该形态超出当前 L1 参考实现（`dsh-puppet` + Lite Relay）的范围，依赖 L2 隧道、主动推送与任务模型等演进（见协议规范 [server-design.md](docs/spec/server-design.md) 与 [plugin-framework.md](docs/spec/plugin-framework.md)）。
+> 本节为**说明性**内容。它描述在 Puppetry 三端模型之上，把「集中式常驻 agent 服务」分散到用户自己的固定 PC 端的应用形态与可能场景。该形态超出当前 L1 参考实现（`dsh-puppet` + Lite Relay）的范围，依赖 L2 隧道、主动推送与任务模型等演进（见协议规范 [server-design.md](docs/spec/server-design.md) 与 [plugin-framework.md](docs/spec/plugin-framework.md)）。
 
 ### 形态定位
 
-Muse 类产品（[Meta Muse 等](https://gadgetsnow.indiatimes.com/featured/meta-muse-explained-the-cloud-pc-behind-its-24/7-agent/amp_articleshow/133954455.cms)）的核心形态是：**一台 24/7 常驻、可跨应用操作、能自主拆解并执行任务的「云端 AI 虚拟机」**，用户通过手机/网页随时触达。Puppetry 天然支持把它「去云端化」：
+云端 AI 虚拟机类产品的核心形态是：**一台 24/7 常驻、可跨应用操作、能自主拆解并执行任务的「云端 AI 虚拟机」**，用户通过手机/网页随时触达。Puppetry 天然支持把它「去云端化」：
 
-| 角色 | Muse 形态 | Puppetry 对应形态 |
+| 角色 | 云端 AI 虚拟机形态 | Puppetry 对应形态 |
 | --- | --- | --- |
 | 常驻执行环境 | 云端 AI 虚拟机（供应商托管） | **受控端**：用户自己的固定 PC（只出站连接、数据不出本地） |
 | 触达面 | 官方 App / 网页 | **控制端**：基于控制端能力封装的个人助理界面 |
 | 消息与协作通道 | 供应商后端 | **服务端**：零知识中继（只转发密文；完整形态含 WSS 隧道与推送） |
 
-这一形态的核心价值：**拿到 Muse 的「全天候自主 agent」体验，但运行环境与数据都在用户自己的机器上**；服务端即使被攻破，也只能看到连接元数据与密文，不掌握任何内容或密钥（协议规范 [e2e-encryption.md](docs/spec/e2e-encryption.md) 的零知识边界在此场景下价值最大）。
+这一形态的核心价值：**拿到「全天候自主 agent」体验，但运行环境与数据都在用户自己的机器上**；服务端即使被攻破，也只能看到连接元数据与密文，不掌握任何内容或密钥（协议规范 [e2e-encryption.md](docs/spec/e2e-encryption.md) 的零知识边界在此场景下价值最大）。
 
 ### 可能应用场景（展望）
 
