@@ -1,8 +1,8 @@
-# 字段字典：端点、方法、事件、数据模型与指令
+﻿# 字段字典：端点、方法、事件、数据模型与指令
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 速查文档，可按需查阅；完整顺序见 [README.md](./README.md)。
 
-### 6.1 端点总览
+## 1. 端点总览
 
 | 方法 | 路径 | 认证 | 用途 |
 | --- | --- | --- | --- |
@@ -10,7 +10,7 @@
 | `POST` | `/v1/devices/token` | refresh + DPoP | 轮换 access token |
 | `POST` | `/v1/pairings` | Agent | 创建配对窗口 |
 | `POST` | `/v1/pairings/{id}/join` | Controller | 加入配对 |
-| `POST` | `/v1/pairings/{id}/invitation` | Controller | 提交加密绑定邀约（扫码，§4.3.1） |
+| `POST` | `/v1/pairings/{id}/invitation` | Controller | 提交加密绑定邀约（扫码，[identity-pairing.md](./identity-pairing.md)） |
 | `GET` | `/v1/pairings/{id}` | Controller | 查询配对状态/结果（`X-Puppetry-Pairing-Commit`） |
 | `POST` | `/v1/pairings/{id}/result` | Agent | 提交绑定结果/拒绝（密文） |
 | `POST` | `/v1/pairings/{id}/cancel` | 任一方 | 取消配对窗口 |
@@ -35,9 +35,9 @@
 | `POST` | `/v1/push/register` | Controller | 注册推送 token |
 | `GET` | `/.well-known/puppetry` | 无 | 服务端能力发现 |
 
-> `/v1/tunnels/*` 只有 Full Relay 提供。Lite 对隧道申请返回 `501 tunnel_unavailable`，可在错误体里带 `alternate_relay`（外部数据面地址），控制端据此走 §8.9 的降级路径或切换外部 relay。
+> `/v1/tunnels/*` 只有 Full Relay 提供。Lite 对隧道申请返回 `501 tunnel_unavailable`，可在错误体里带 `alternate_relay`（外部数据面地址），控制端据此走 [server-design.md](./server-design.md) 的降级路径或切换外部 relay。
 
-### 7.4 RPC 方法（Controller → Agent）
+## 2. RPC 方法（Controller → Agent）
 
 | 方法 | 参数 | 返回 | scope |
 | --- | --- | --- | --- |
@@ -58,9 +58,9 @@
 | `approval.respond` | `{ask_id, decision, note?}` | `{applied}` | `approval.respond` |
 | `question.respond` | `{ask_id, answers, free_text?}` | `{applied}` | `approval.respond` |
 
-错误沿用 JSON-RPC 2.0 错误对象，`data.code` 使用第 6.7 节同一套错误码。
+错误沿用 JSON-RPC 2.0 错误对象，`data.code` 使用[error-code.md](./error-code.md)同一套错误码。
 
-### 7.5 事件（Agent → Controller，流内）
+## 3. 事件（Agent → Controller，流内）
 
 | 事件 | 载荷 | 说明 |
 | --- | --- | --- |
@@ -76,7 +76,7 @@
 
 约束：单条事件 ≤ 64 KiB；预览字段截断到 2 KiB 并标注 `truncated:true`；高频增量按 100ms 合并；`turn.end` 必须在所有增量之后发出（保序）。
 
-### 8.2 数据模型（只存元数据/密文）
+## 4. 数据模型（只存元数据/密文）
 
 | 表 | 关键列 | 说明 |
 | --- | --- | --- |
@@ -91,7 +91,7 @@
 | `push_tokens` | `device_id, provider, token, exp` | 不含内容 |
 | `audit` | `ts, actor, action, target, meta_json` | 只记录元数据 |
 
-### 8.10 Lite 的最小数据模型与队列算法
+## 5. Lite 的最小数据模型与队列算法
 
 关系型数据库示例（以 MySQL 为例；SQLite 把 `AUTO_INCREMENT` 改成 `INTEGER PRIMARY KEY AUTOINCREMENT`，`ENGINE` 去掉）：
 
@@ -191,7 +191,7 @@ CREATE TABLE nonces (
 
 SQLite 注意：开启 WAL、`busy_timeout=5000`，写事务用 `BEGIN IMMEDIATE`；单机低并发足够。
 
-## 附录 A：指令目录（v1）
+## 6. 指令目录（v1）
 
 | `type` | 明文载荷 | 结果 | scope |
 | --- | --- | --- | --- |
@@ -209,5 +209,5 @@ SQLite 注意：开启 WAL、`busy_timeout=5000`，写事务用 `BEGIN IMMEDIATE
 | `binding.revoke` | `{binding_id}` | `{}` | `admin`（仅 Agent UI 或 admin 控制端） |
 | `key.rotate` | `{epoch, wrapped_keys[]}` | `{}` | 内部 |
 
-> **Lite 允许的指令子集**：`agent.ping`、`session.prompt`、`session.cancel`、`session.rename`、`session.archive`、`approval.respond`、`question.respond`、`session.create`、`session.snapshot`、`env.info`；`project.create` 需 PC 本地确认且默认关闭。`session.snapshot` 用于 gap 恢复/全量补偿；Lite 的流式主路径是**快照上传 + 增量拉取**（§8.9.3），不是指令轮询。
+> **Lite 允许的指令子集**：`agent.ping`、`session.prompt`、`session.cancel`、`session.rename`、`session.archive`、`approval.respond`、`question.respond`、`session.create`、`session.snapshot`、`env.info`；`project.create` 需 PC 本地确认且默认关闭。`session.snapshot` 用于 gap 恢复/全量补偿；Lite 的流式主路径是**快照上传 + 增量拉取**（[server-design.md](./server-design.md)），不是指令轮询。
 

@@ -1,8 +1,8 @@
-# 错误码
+﻿# 错误码
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 速查文档，可按需查阅；完整顺序见 [README.md](./README.md)。
 
-### 6.7 错误码
+## 1. 错误码
 
 | code | HTTP | 含义 | 可重试 |
 | --- | --- | --- | --- |

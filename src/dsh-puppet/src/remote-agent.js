@@ -25,7 +25,7 @@ class HttpError extends Error {
 /** Implementation-only heartbeat acceleration while a pairing QR is on screen. */
 const PAIRING_FAST_HB_MS = 2000
 
-/** Bounds for the sealed session digest carried to the controller (§5.4). */
+/** Bounds for the sealed session digest carried to the controller (e2e-encryption.md §1.4). */
 const DIGEST_SESSIONS = 10
 const DIGEST_MESSAGES = 20
 

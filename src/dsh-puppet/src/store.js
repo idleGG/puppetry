@@ -192,7 +192,7 @@ export class Store {
   }
 
   /**
-   * Agent-level metadata key (mk, §5.4). One key per agent (per epoch) is shared
+   * Agent-level metadata key (mk, e2e-encryption.md §1.4). One key per agent (per epoch) is shared
    * by every binding so that the sealed session digest is decryptable by all
    * controllers, not just the first one. Rotate on revocation (future work).
    */

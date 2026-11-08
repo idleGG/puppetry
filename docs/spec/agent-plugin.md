@@ -1,18 +1,18 @@
-# 受控端（Agent）插件设计
+﻿# 受控端（Agent）插件设计
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 前置阅读：[server-design.md](./server-design.md)；完整顺序见 [README.md](./README.md)。
 
-## 9. 受控端（Agent）插件设计
+## 1. 受控端（Agent）插件设计
 
-> 本章为**实现参考**（说明性）：描述受控端参考实现（DSH 插件）的组织方式与内部接口，非协议规范；受控端需要遵守的协议要求见 §4–§8。
+> 本章为**实现参考**（说明性）：描述受控端参考实现（DSH 插件）的组织方式与内部接口，非协议规范；受控端需要遵守的协议要求见 [identity-pairing.md](./identity-pairing.md)–[server-design.md](./server-design.md)。
 
-### 9.1 在 DSH 中的形态
+### 1.1 在 DSH 中的形态
 
 - 一个 DSH **host bundle**：`package.json` 声明 `dsh.bundle.patch`，`cordis.patch.yml` 插入插件；可选 `dsh.client` 提供设置页/配对二维码。
 - 兼容门：`engines.dsh` 与 peerDependencies 使用双段范围（参考社区插件的做法），否则会被静默禁用。
 - 安装：`dsh plugin --profile <profile> add <pkg>`；改代码后需完全重启（HMR 只热更配置，不重新 import）。
 
-### 9.2 模块划分
+### 1.2 模块划分
 
 ```
 src/
@@ -31,7 +31,7 @@ src/
   ui/                 # 设置页、配对二维码、状态 pill
 ```
 
-### 9.3 Host Adapter 接口
+### 1.3 Host Adapter 接口
 
 ```ts
 export interface PuppetAgentHost {
@@ -75,7 +75,7 @@ export interface PuppetAgentHost {
 
 > 关键点：**远端指令最终仍以「用户 prompt」进入 DSH 会话**，沿用该会话的 permission preset 与工具审批；远控插件不绕过 DSH 的权限系统。
 
-### 9.4 本地策略与审批
+### 1.4 本地策略与审批
 
 ```yaml
 policy:
@@ -95,7 +95,7 @@ policy:
 - 高危操作（`danger-full-access`、写系统目录、执行任意命令）→ 强制本地确认，手机只能看到提示。
 - 所有远端审批动作写本地审计（ask_id、决定、来源、耗时）。
 
-### 9.5 生命周期
+### 1.5 生命周期
 
 | 事件 | 行为 |
 | --- | --- |
@@ -108,7 +108,7 @@ policy:
 | 撤销 | 收到 `bindings.revoked` → 删除本地绑定 → 拒绝该控制端所有指令 |
 | 卸载 | 删除本地密钥与状态（可选保留审计） |
 
-### 9.6 密钥存储
+### 1.6 密钥存储
 
 - 优先 OS keychain；不可用时退化为 `0600` 文件 + 明确警告（Windows 上 chmod 只切只读位，需显式提示）。
 - 私钥不写日志、不进崩溃转储、不出现在 argv。

@@ -1,12 +1,12 @@
-# 控制端（Controller）插件设计
+﻿# 控制端（Controller）插件设计
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 前置阅读：[server-design.md](./server-design.md)；完整顺序见 [README.md](./README.md)。
 
-## 10. 控制端（Controller）插件设计
+## 1. 控制端（Controller）插件设计
 
-> 本章为**实现参考**（说明性）：给出控制端 SDK 分层与页面状态机的组织建议，供实现方参考，非协议规范；控制端需要遵守的协议要求见 §4–§8。
+> 本章为**实现参考**（说明性）：给出控制端 SDK 分层与页面状态机的组织建议，供实现方参考，非协议规范；控制端需要遵守的协议要求见 [identity-pairing.md](./identity-pairing.md)–[server-design.md](./server-design.md)。
 
-### 10.1 分层
+### 1.1 分层
 
 ```
 @thread/client-core     # 无 UI：密钥、配对、HTTP、HPKE、Noise、状态机
@@ -17,7 +17,7 @@
 
 `client-core` 只依赖标准 WebCrypto/Node crypto；UI 层不接触密钥材料，只拿「已解密的事件/会话」。
 
-### 10.2 页面与状态机
+### 1.2 页面与状态机
 
 ```
 Unpaired → Pairing → Idle → AgentSelected → SessionList → SessionView
@@ -33,7 +33,7 @@ Unpaired → Pairing → Idle → AgentSelected → SessionList → SessionView
 | 会话详情 | 隧道 `session.attach`，或 Lite 快照拉取 | 发 prompt、取消、审批、切模型（可选） |
 | 设置 | 本地 | 服务器地址、密钥、推送、隐私 |
 
-### 10.3 推送与后台
+### 1.3 推送与后台
 
 - 注册 token：`POST /v1/push/register {provider, token}`。
 - 服务端只推「有结果 / 有审批 / 任务结束」的事件 id，不推内容。
@@ -41,7 +41,7 @@ Unpaired → Pairing → Idle → AgentSelected → SessionList → SessionView
 - 后台不保持隧道；回到前台再按需开。
 - **Lite 没有服务端推送**：前台轮询 `inbox` 或在快照拉取里捎带状态；需要唤醒时，可由 Agent 直接调用外部推送服务（ntfy/Bark/Telegram），只发「有审批/有结果」与一个事件 id，不发内容。
 
-### 10.4 Web 端限制
+### 1.4 Web 端限制
 
 - 浏览器密钥存 IndexedDB + WebCrypto（尽量非导出）；清缓存 = 丢密钥 = 需重新配对。
 - 不建议在共享浏览器上配对；提供「本次会话临时密钥」选项（关闭标签即失效）。

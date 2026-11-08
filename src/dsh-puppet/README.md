@@ -104,7 +104,7 @@ dsh plugin --profile desktop add dsh-puppet
 
 ## 绑定控制端（v0.2）
 
-设置页的「绑定控制端」卡片提供**两种方式**，任选其一，二者共用同一套邀约/响应协议（设计文档 §4.3.2）：
+设置页的「绑定控制端」卡片提供**两种方式**，任选其一，二者共用同一套邀约/响应协议（见协议规范 [identity-pairing.md](../../docs/spec/identity-pairing.md)）：
 
 **方式一：扫码绑定**
 
@@ -118,9 +118,9 @@ dsh plugin --profile desktop add dsh-puppet
 2. 把 token 粘贴进 Puppeteer App；token 是二维码内容的文本形式（`base64url(canonical JSON)`），App 解出 `relay / pid / psk / 公钥 / exp` 后走与扫码完全相同的邀约流程。
 3. 后续绑定与回传结果与方式一一致。
 
-二维码 / token 都是 5 分钟内有效、一次性；含一次性 `psk`，只在本机屏幕展示，不要截图/投屏/外发。流程见设计文档 §4.3.1、§4.3.2。
+二维码 / token 都是 5 分钟内有效、一次性；含一次性 `psk`，只在本机屏幕展示，不要截图/投屏/外发。流程见协议规范 [identity-pairing.md](../../docs/spec/identity-pairing.md)。
 
-**离线/救援兜底**：仍可通过 `POST /puppet/api/binding` 手工导入 BindingRecord（设计文档 §4.4 的 JSON 结构），但不再是主流程。
+**离线/救援兜底**：仍可通过 `POST /puppet/api/binding` 手工导入 BindingRecord（见协议规范 [identity-pairing.md](../../docs/spec/identity-pairing.md) §1.4 的 JSON 结构），但不再是主流程。
 
 ## 指令
 

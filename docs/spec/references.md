@@ -1,8 +1,8 @@
-# 参考资料
+﻿# 参考资料
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 速查文档（参考资料），可按需查阅；完整顺序见 [README.md](./README.md)。
 
-## 14. 参考资料
+## 1. 参考资料
 
 **现有实现**
 

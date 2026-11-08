@@ -1,16 +1,16 @@
-# 端到端加密设计
+﻿# 端到端加密设计
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 前置阅读：[architecture.md](./architecture.md)；完整顺序见 [README.md](./README.md)。
 
-## 5. 端到端加密设计
+## 1. 端到端加密设计
 
-### 5.1 密码套件
+### 1.1 密码套件
 
 v1 只允许一套，禁止协商降级：
 
 ```
 Puppetry1_SUITE = X25519-HKDF-SHA256-CHACHA20POLY1305
-  KEM:  DHKEM(X25519, HKDF-SHA256)        (RFC 9180 §7.1)
+  KEM:  DHKEM(X25519, HKDF-SHA256)        (RFC 9180 [message-format.md](./message-format.md))
   KDF:  HKDF-SHA256                       (RFC 5869)
   AEAD: ChaCha20-Poly1305                 (RFC 8439)
   SIG:  Ed25519                           (RFC 8032)
@@ -19,7 +19,7 @@ Puppetry1_SUITE = X25519-HKDF-SHA256-CHACHA20POLY1305
 
 实现方必须在 `server/info` 与 `hello` 中声明套件；不在白名单内直接拒绝，不做「尽力兼容」。
 
-### 5.2 异步信封（HPKE Auth）
+### 1.2 异步信封（HPKE Auth）
 
 用于：指令（Controller → Agent）、结果（Agent → Controller）、密钥分发（Agent → Controller）、事件（Agent → Controller）。
 
@@ -42,7 +42,7 @@ Puppetry1_SUITE = X25519-HKDF-SHA256-CHACHA20POLY1305
 }
 ```
 
-**线上序列化**：当信封作为 HTTP 字段传输（心跳 `commands[].envelope`、`POST /commands` 的 `envelope`、`POST /commands/{id}/result` 的 `envelope`）时，一律为 `base64url(JSON(上述信封对象))` 字符串，服务端不解析；配对邀约/结果的 `envelope` 则保持 `{enc, ct}` 对象（见 §4.3.1）。
+**线上序列化**：当信封作为 HTTP 字段传输（心跳 `commands[].envelope`、`POST /commands` 的 `envelope`、`POST /commands/{id}/result` 的 `envelope`）时，一律为 `base64url(JSON(上述信封对象))` 字符串，服务端不解析；配对邀约/结果的 `envelope` 则保持 `{enc, ct}` 对象（见 [identity-pairing.md](./identity-pairing.md)）。
 
 加密：
 
@@ -64,7 +64,7 @@ ct = ctx.Seal(aad, plaintext)
 3. Agent 侧按 epoch 轮换 `mk`，但不解决指令本身；
 4. 真正需要 FS 的交互走隧道（Noise IK 每连接临时密钥）。
 
-### 5.3 隧道握手（Noise IK）
+### 1.3 隧道握手（Noise IK）
 
 ```
 Noise_IK_25519_ChaChaPoly_SHA256:
@@ -80,9 +80,9 @@ Noise_IK_25519_ChaChaPoly_SHA256:
 - 隧道内所有业务帧都是 Noise transport 密文；服务端只看到长度与时序。
 - 每次隧道重新握手，天然获得每连接前向保密与重放保护（Noise nonce 单调）。
 
-### 5.4 元数据密封（会话标题等）
+### 1.4 元数据密封（会话标题等）
 
-心跳只上报 `{epoch, rev, hash, count}`，真正的会话列表是一个密封 blob（Lite 用 JSON 编码，见 §8.9.1；Full 可选 CBOR 但须经 `content_type` 声明）：
+心跳只上报 `{epoch, rev, hash, count}`，真正的会话列表是一个密封 blob（Lite 用 JSON 编码，见 [server-design.md](./server-design.md)；Full 可选 CBOR 但须经 `content_type` 声明）：
 
 ```
 digest_plain = {
@@ -112,7 +112,7 @@ digest_blob = nonce(12) || AEAD(mk, digest_plain,
 - `mk` 分发：配对完成后 Agent 生成并经 `bind.result.meta_key` 交给新控制端；撤销时轮换。
 - 退化模式：尚未配对（无 `mk`）时 `mode:"summary"`，只上报 `id/running/updatedAt/origin/parentId/archived`，标题与路径不上送（隐私最低但兼容性最好）。
 
-### 5.5 重放、顺序与时钟
+### 1.5 重放、顺序与时钟
 
 | 机制 | 规则 |
 | --- | --- |
@@ -123,7 +123,7 @@ digest_blob = nonce(12) || AEAD(mk, digest_plain,
 | 时钟 | Agent 用心跳响应里的 `server_time` 维护偏移；控制端同理 |
 | 跨绑定 | `bid` 参与 HPKE `info` 与 AAD，换绑定无法解密/通过校验 |
 
-### 5.6 服务端能看到什么
+### 1.6 服务端能看到什么
 
 | 可见 | 不可见 |
 | --- | --- |

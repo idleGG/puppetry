@@ -1,10 +1,10 @@
-# 服务端设计
+﻿# 服务端设计
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 前置阅读：[message-format.md](./message-format.md)；完整顺序见 [README.md](./README.md)。
 
-## 8. 服务端设计
+## 1. 服务端设计
 
-### 8.1 组件
+### 1.1 组件
 
 ```
                     ┌────────────────────────────────────────────┐
@@ -23,7 +23,7 @@
                  └─────────────┘ └───────────┘ └────────────────┘
 ```
 
-### 8.3 零知识如何被「工程保证」
+### 1.2 零知识如何被「工程保证」
 
 1. **协议层**：服务端只接收 `envelope`/`blob` 字段，schema 里没有 `plaintext` 字段；解析器拒绝未知字段。
 2. **代码层**：server 构建产物不依赖任何 AEAD/HPKE/Noise 解密实现；CI 用静态检查 + 依赖白名单锁住。
@@ -31,24 +31,24 @@
 4. **运维层**：生产环境禁止抓包落盘；审计只记「谁在何时对哪个设备做了什么」。
 5. **可选**：机密计算/TEE 或自托管，进一步降低「服务端被攻破」的信任成本。
 
-### 8.4 开放/公共服务的滥用防护
+### 1.3 开放/公共服务的滥用防护
 
 - 每设备：邮箱 1000 条 / 24h，指令 60 条/分钟，隧道 8 MiB/s。
 - 每 IP/ASN：注册 10 个设备/天，配对 20 次/小时，失败配对指数退避。
 - 信封大小上限：指令 64 KiB、结果 256 KiB、摘要 256 KiB、事件 64 KiB。
 - 隧道：每设备 4 条并发，单条 5 分钟，空闲 90s 关闭。
 - 公开服务器可要求「邀请码/工作量证明/邮箱验证」之一，按部署方策略。
-- **Lite 部署**使用更小限额（每设备 120 req/min、每次心跳 ≤16 条且总 ≤128 KiB、结果 ≤64 KiB、摘要 ≤128 KiB），见 §8.13；限额是协议可协商项，不是硬编码。
+- **Lite 部署**使用更小限额（每设备 120 req/min、每次心跳 ≤16 条且总 ≤128 KiB、结果 ≤64 KiB、摘要 ≤128 KiB），见 §1.11；限额是协议可协商项，不是硬编码。
 
-### 8.5 部署与伸缩（Full Relay）
+### 1.4 部署与伸缩（Full Relay）
 
 - 无状态 API + 关系型数据库（主从）+ 内存缓存（presence/长轮询唤醒/限流）。
 - 隧道节点按 `tunnel_id` 哈希到固定节点；节点间用共享缓存发布订阅完成「双方到齐」通知。
 - 多地域：控制端与 Agent 各自就近接入；隧道必须落在同一节点（用 DNS/Anycast + 一致性哈希）。
 - 灾备：邮箱与摘要持久化；隧道状态可丢（重建即可）。
-- Lite 的部署模型完全不同，见 §8.7–8.13。
+- Lite 的部署模型完全不同，见 §1.6–§1.11。
 
-### 8.6 服务端插件 SPI（第三方定制）
+### 1.5 服务端插件 SPI（第三方定制）
 
 ```ts
 export interface RelayPlugin {
@@ -69,7 +69,7 @@ export interface RelayPlugin {
 
 替换任意实现不影响线协议；一致性套件会验证「只实现 L0/L1 的服务端」也能被标准 Agent/Controller 使用。
 
-### 8.7 部署形态：Full Relay / Lite Relay / Hybrid
+### 1.6 部署形态：Full Relay / Lite Relay / Hybrid
 
 | 形态 | 运行环境 | 等级 | 隧道 | 长轮询 | 推送 | 典型场景 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -83,18 +83,18 @@ export interface RelayPlugin {
 
 | 能力 | 说明 |
 | --- | --- |
-| 实时流 | 隧道内 `session.attach` / `assistant.delta` / `tool.call` 等事件实时推送（§7） |
-| 环境实时观测 | `env.watch` 周期采样推送（§7.4） |
-| 长轮询 | `POST /v1/agent/hb?wait=25` 让指令延迟接近 RTT（§6.6） |
+| 实时流 | 隧道内 `session.attach` / `assistant.delta` / `tool.call` 等事件实时推送（[message-format.md](./message-format.md)） |
+| 环境实时观测 | `env.watch` 周期采样推送（[field-dictionary.md](./field-dictionary.md)） |
+| 长轮询 | `POST /v1/agent/hb?wait=25` 让指令延迟接近 RTT（[message-format.md](./message-format.md)） |
 | 主动推送 | APNs/FCM/WebPush 唤醒控制端（只推事件 id，不推内容） |
 | 多控制端实时协同 | 多个控制端可同时订阅同一会话的事件流 |
-| 横向扩展 | 无状态 API + 隧道节点按 `tunnel_id` 哈希；多地域就近接入（§8.5） |
-| 节点迁移 | 隧道 `GOAWAY` → 5s 内重连同一 `tunnel_id`（§7.6） |
-| 断线续传 | 每方向缓存 ≤256 KiB/60s，`last_recv_seq` 续传（§7.6） |
+| 横向扩展 | 无状态 API + 隧道节点按 `tunnel_id` 哈希；多地域就近接入（§1.4） |
+| 节点迁移 | 隧道 `GOAWAY` → 5s 内重连同一 `tunnel_id`（[message-format.md](./message-format.md)） |
+| 断线续传 | 每方向缓存 ≤256 KiB/60s，`last_recv_seq` 续传（[message-format.md](./message-format.md)） |
 
 Full Relay 面向「低延迟、流式、多用户」场景；Lite 面向「低依赖、个人/小团队」场景。二者使用同一套身份、信封与 L0/L1 语义，通过能力发现（`/.well-known/puppetry`）自动切换，部署方无需修改两端实现。
 
-### 8.8 Lite Relay：目标环境与能力边界
+### 1.7 Lite Relay：目标环境与能力边界
 
 **目标环境**（以受限托管环境为例，共享虚拟主机是典型场景，实现语言不限）：
 
@@ -143,9 +143,9 @@ Full Relay 面向「低延迟、流式、多用户」场景；Lite 面向「低�
 
 > 结论：Lite 能覆盖「看状态、看列表、发指令、审批、建会话」；**不能覆盖**「低延迟流式、`env.watch`、大文件」。需要后者时升级 Full 或加一个外部 relay（Hybrid）。
 
-### 8.9 Lite 协议增量（必须实现）
+### 1.8 Lite 协议增量（必须实现）
 
-#### 8.9.1 每请求签名 `Puppetry1-Sig`
+#### 1.8.1 每请求签名 `Puppetry1-Sig`
 
 Lite 不签发 JWT，认证头：
 
@@ -178,7 +178,7 @@ Puppetry1
 
 注册 `POST /v1/devices/enroll` 用同一签名格式，`device` 留空，公钥放在 body，服务端用 body 里的公钥验签。验签通过后返回 `device_id`，**不返回令牌**。
 
-#### 8.9.2 配对邮箱（替代配对隧道）
+#### 1.8.2 配对邮箱（替代配对隧道）
 
 端点：
 
@@ -233,7 +233,7 @@ Agent（PC）                     Lite Server                    Controller（�
 - **安全等价性**：psk 高熵且只在二维码里；服务端没有 psk 无法伪造 `proof`，也无法在不知道 `agent_x` 私钥的情况下解密 PairRequest。服务端仍可拒绝服务/延迟，与 Full 的威胁模型一致。
 - Lite 不做短码 SPAKE2（需要多轮交互，轮询体验差）；短码配对留给 Full 或 v2。
 
-#### 8.9.3 流式降级：快照上传 + 增量拉取
+#### 1.8.3 流式降级：快照上传 + 增量拉取
 
 Lite 没有 WebSocket，但可以让 Agent「小步上传」快照、控制端「增量拉取」，做到 2–3s 的近实时，而不是等 15–30s 的心跳：
 
@@ -256,11 +256,11 @@ Lite 没有 WebSocket，但可以让 Agent「小步上传」快照、控制端�
 }
 ```
 
-成本：一个活跃 turn 约 1 次上传/秒 + 1 次拉取/2 秒；个人站点可接受，多用户共享主机需要限额（见 §8.13）。**为什么不复用指令**：指令要等心跳（15–30s），做不到 2s 级；快照上传/拉取是独立短请求，不等心跳。
+成本：一个活跃 turn 约 1 次上传/秒 + 1 次拉取/2 秒；个人站点可接受，多用户共享主机需要限额（见 §1.11）。**为什么不复用指令**：指令要等心跳（15–30s），做不到 2s 级；快照上传/拉取是独立短请求，不等心跳。
 
 Agent 仍保留环形缓冲（512 条 / 256 KiB / 10 分钟），用于 `session.snapshot` 的 gap 恢复与断线补看；事件 schema 与隧道事件完全一致，UI 渲染逻辑可复用。
 
-#### 8.9.4 指令化的复杂操作
+#### 1.8.4 指令化的复杂操作
 
 Lite 把一部分原本走隧道的操作改成「指令 + 本地确认 + 结果」：
 
@@ -273,7 +273,7 @@ Lite 把一部分原本走隧道的操作改成「指令 + 本地确认 + 结果
 
 `project.create` 的确认在 PC 端弹出（DSH 通知/插件 UI），远端等待 ≤120s；超时/无人在场 → `policy_denied`。这样既保留「复杂操作需要人在场」的安全语义，又不要求 WebSocket。
 
-#### 8.9.5 隧道不可用时的返回
+#### 1.8.5 隧道不可用时的返回
 
 ```http
 POST /v1/tunnels
@@ -289,7 +289,7 @@ POST /v1/tunnels
 
 控制端策略：`tunnel` → `snapshot` → `final-only` 三级降级；若 `alternate_relay` 存在且用户允许，切换到 Hybrid 数据面（绑定与 Noise 身份不变）。
 
-### 8.11 Lite 参考实现示例（以 PHP 为例）
+### 1.9 Lite 参考实现示例（以 PHP 为例）
 
 > PHP 仅作为 Lite 服务端的一种示例实现语言：Lite 服务端可以用任何支持「HTTP + 关系型数据库 + Ed25519 验签」的语言实现，本节不将 PHP 认定为默认或唯一选项。
 
@@ -357,7 +357,7 @@ $pdo->commit();
 - **共享主机兼容**：`Authorization` 被过滤时用 `X-Puppetry-Auth`；只允许 GET/POST 时用 `X-HTTP-Method-Override`；不能改 rewrite 时用 `index.php?r=/v1/...`；IIS 用 `web.config`；`open_basedir` 限制时把 `config.php` 放 Web 根内并加 `<?php exit; ?>` 防直接访问。
 - **同源优先**：Web 控制端尽量与 API 部署在同一虚拟主机/子目录，避免 CORS；必须跨源时只允许白名单 `Origin`，预检放行 `Authorization`，不要用 `*`。
 
-### 8.12 Lite 的限制、失败模式与安全
+### 1.10 Lite 的限制、失败模式与安全
 
 | 问题 | 表现 | 处理 |
 | --- | --- | --- |
@@ -378,7 +378,7 @@ $pdo->commit();
 - 配对时展示 SAS，用户可比对；
 - 关键操作（`project.create`、危险权限）强制 PC 本地确认。
 
-### 8.13 Lite 参考实现部署清单（PHP 示例）
+### 1.11 Lite 参考实现部署清单（PHP 示例）
 
 | 项 | 要求 |
 | --- | --- |

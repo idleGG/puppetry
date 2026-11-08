@@ -163,7 +163,7 @@ export class PairingManager {
       try {
         const invitation = this.openInvitation(item.envelope, this.active)
         const record = await this.bind(invitation, this.active)
-        // 服务端需要一份绑定副本才能做粗粒度 ACL / presence 路由（§4.4）。登记是
+        // 服务端需要一份绑定副本才能做粗粒度 ACL / presence 路由（identity-pairing.md §1.4）。登记是
         // 幂等的；失败不阻断绑定结果（控制端配对成功路径也会再登记一次作为兜底）。
         try {
           await this.agent.request('POST', '/v1/bindings', {
@@ -281,7 +281,7 @@ export class PairingManager {
     record.agent_sig = signBindingPayload(record, this.identity)
 
     // Agent-level mk is shared across bindings so every controller can decrypt
-    // the same sealed digest (§5.4); keep a copy on the record for convenience.
+    // the same sealed digest (e2e-encryption.md §1.4); keep a copy on the record for convenience.
     const metaKey = this.store.ensureMetaKey()
     record.meta_key = metaKey
     record.meta_epoch = this.store.metaEpoch()

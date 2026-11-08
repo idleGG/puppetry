@@ -1,8 +1,8 @@
-# 落地路线
+﻿# 落地路线
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 前置阅读：[architecture.md](./architecture.md)；完整顺序见 [README.md](./README.md)。
 
-## 13. 落地路线
+## 1. 落地路线
 
 | 阶段 | 目标 | 交付 |
 | --- | --- | --- |
@@ -13,7 +13,7 @@
 | M3（2 周） | 多端与生产化 | 多控制端、轮换、推送、审计、一致性套件、移动端 |
 | M4（可选） | 体验与规模 | WebRTC P2P、附件分块、联邦/多地域 |
 
-**受控端参考实现**：本工作区的 `dsh-puppet/` 已按本文的 L1（心跳 + 指令邮箱）实现了一版可安装的 DSH 插件：Ed25519/X25519 身份、`Puppetry1-Sig` 每请求签名、HPKE Auth 指令/结果、扫码/拷贝 token 邀约绑定（§4.3.2）、`session.snapshot` 降级、保持唤醒（Windows/macOS/Linux）以及本机设置页（`/puppet-settings`）。它把密封摘要的退化模式简化为 `mode:"summary"`（不含标题），并把手工导入 BindingRecord 保留为离线/救援路径。
+**受控端参考实现**：本工作区的 `dsh-puppet/` 已按本文的 L1（心跳 + 指令邮箱）实现了一版可安装的 DSH 插件：Ed25519/X25519 身份、`Puppetry1-Sig` 每请求签名、HPKE Auth 指令/结果、扫码/拷贝 token 邀约绑定（[identity-pairing.md](./identity-pairing.md)）、`session.snapshot` 降级、保持唤醒（Windows/macOS/Linux）以及本机设置页（`/puppet-settings`）。它把密封摘要的退化模式简化为 `mode:"summary"`（不含标题），并把手工导入 BindingRecord 保留为离线/救援路径。
 
 **建议先做的三个验证**：
 

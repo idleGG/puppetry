@@ -1,12 +1,12 @@
-# 消息格式与控制面/数据面协议
+﻿# 消息格式与控制面/数据面协议
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 前置阅读：[e2e-encryption.md](./e2e-encryption.md)；完整顺序见 [README.md](./README.md)。
 
-## 6. 控制面协议（心跳 + 邮箱）
+## 1. 控制面协议（心跳 + 邮箱）
 
-「邮箱」（mailbox）在本协议中指服务端为每个设备维护的待投递加密消息队列（定义见 §0 摘要）：控制端把加密指令投递到受控端的邮箱，受控端在下一次心跳时取走并执行，再回传加密结果。本章规定这一「心跳 + 邮箱」控制面的全部端点、消息结构与可靠性语义。
+「邮箱」（mailbox）在本协议中指服务端为每个设备维护的待投递加密消息队列（定义见 [architecture.md](./architecture.md) 摘要）：控制端把加密指令投递到受控端的邮箱，受控端在下一次心跳时取走并执行，再回传加密结果。本章规定这一「心跳 + 邮箱」控制面的全部端点、消息结构与可靠性语义。
 
-### 6.2 心跳请求
+### 1.1 心跳请求
 
 ```jsonc
 POST /v1/agent/hb
@@ -32,7 +32,7 @@ Content-Type: application/cbor            # Lite: application/json
 }
 ```
 
-### 6.3 心跳响应
+### 1.2 心跳响应
 
 ```jsonc
 {
@@ -46,7 +46,7 @@ Content-Type: application/cbor            # Lite: application/json
     "exp": 1761786000000,
     "attempt": 1
   }],
-  "pairings": [{                     // 扫码邀约，见 §4.3.1；服务端只搬运密文
+  "pairings": [{                     // 扫码邀约，见 [identity-pairing.md](./identity-pairing.md)；服务端只搬运密文
     "pairing_id": "pr_...",
     "envelope": { "enc": "b64url", "ct": "b64url" },
     "exp": 1761782700000
@@ -71,7 +71,7 @@ Content-Type: application/cbor            # Lite: application/json
 - `bindings.revoked` 是权威撤销列表；Agent 必须本地删除并停止受理。
 - 响应可压缩（CBOR + gzip/br）；移动网络下 30s 一次的空响应应 < 200 字节。
 
-### 6.4 会话摘要同步（Lite 发 prompt 的基础）
+### 1.3 会话摘要同步（Lite 发 prompt 的基础）
 
 ```
 Agent 本地会话/消息变化
@@ -85,12 +85,12 @@ Agent 本地会话/消息变化
 
 - **消息窗口**：受控端只带最近 `n` 个会话（按 `updatedAt` 降序）与每会话最近 `m` 条消息（受控端默认 n=10、m=20，可调）；消息文本截断（每条约 1 KiB）以控制 blob 体积，Lite 摘要 ≤128 KiB。
 - **增量提交**：受控端对 digest_plain 做哈希，`hash` 未变则不重复 `PUT`（`rev`/`hash` 不变）；控制端按 `rev` 判断是否有新内容，前台按需拉取（不触发推送）。
-- **发 prompt**：控制端对已有会话 `POST /v1/agents/{id}/commands` 提交 `session.prompt` 指令（HPKE Auth 信封），受控端心跳取回执行后 `POST /v1/commands/{id}/result` 回传 `{accepted, turn_id}`；控制端轮询 `GET /v1/commands/{id}` 取结果（见 §6.5）。
+- **发 prompt**：控制端对已有会话 `POST /v1/agents/{id}/commands` 提交 `session.prompt` 指令（HPKE Auth 信封），受控端心跳取回执行后 `POST /v1/commands/{id}/result` 回传 `{accepted, turn_id}`；控制端轮询 `GET /v1/commands/{id}` 取结果（见 §1.4）。
 - **本地清理**：控制端在浏览器 IndexedDB 只保留最近 `n` 个会话 × 每会话 `m` 条消息，超过阈值的消息定期清理（阈值可在控制端配置）。
 - 心跳里只有 hash，不传标题/消息；服务端只存 blob，无法做内容索引。
-- 较复杂操作（新建工作区、翻看更久历史）需走 `session.create` / `session.page` 等受控端指令或隧道，不在本摘要窗口内（见 §8.9.4 / §9.3）。
+- 较复杂操作（新建工作区、翻看更久历史）需走 `session.create` / `session.page` 等受控端指令或隧道，不在本摘要窗口内（见 [server-design.md](./server-design.md) / [agent-plugin.md](./agent-plugin.md)）。
 
-### 6.5 指令生命周期
+### 1.4 指令生命周期
 
 ```
 Controller                 Server                    Agent
@@ -133,7 +133,7 @@ CREATED ──submit──▶ QUEUED ──deliver──▶ DELIVERED ──ack�
 | 取消 | Controller 可 `DELETE /v1/commands/{id}`；已投递的指令由 Agent 尽力取消，不保证 |
 | 离线 | Agent 离线时指令留在队列；控制端看到 `queued` 与 `agent_offline` 标记 |
 
-### 6.6 长轮询与延迟优化
+### 1.5 长轮询与延迟优化
 
 纯心跳的指令延迟 = 心跳间隔（默认 30s，最坏 30s）。为了让「发一句话」接近即时，同时不引入常连：
 
@@ -146,9 +146,9 @@ CREATED ──submit──▶ QUEUED ──deliver──▶ DELIVERED ──ack�
 
 **Lite 不提供长轮询**：`features.long_poll=false`，Agent 按 `heartbeat.min_ms/max_ms` 固定间隔发心跳；控制端提交指令后按 1s → 2s → 5s → 10s 退避拉取结果，前台时最长 30s 放弃并提示「已排队，稍后通知」。这让单次请求的执行时间保持在共享主机允许的范围内。
 
-## 7. 数据面协议（按需隧道）
+## 2. 数据面协议（按需隧道）
 
-### 7.1 建立流程
+### 2.1 建立流程
 
 ```
 Controller                     Server                        Agent
@@ -170,9 +170,9 @@ Controller                     Server                        Agent
 - 服务端最多等 15s 让双方到齐；超时关闭。控制端可重试。
 - 隧道默认 TTL 300s，活动期间可 `tunnel.extend`；空闲 90s 关闭。
 - 服务端不解析 Noise 明文，只按外层帧转发；可做字节级限速与连接数限制。
-- 隧道是 **L2 能力**：Lite Relay 不提供 WSS。控制端收到 `tunnel_unavailable` 后按 §8.9 改用快照拉取，或切换到外部 relay（Hybrid），不对同一 Lite 端点反复重试。
+- 隧道是 **L2 能力**：Lite Relay 不提供 WSS。控制端收到 `tunnel_unavailable` 后按 [server-design.md](./server-design.md) 改用快照拉取，或切换到外部 relay（Hybrid），不对同一 Lite 端点反复重试。
 
-### 7.2 外层帧（服务端可见）
+### 2.2 外层帧（服务端可见）
 
 ```
 0        1        2        3        4        5        6 ...
@@ -191,7 +191,7 @@ Controller                     Server                        Agent
 | `0x04` | CLOSE | `{code, reason}`，关闭隧道 |
 | `0x05` | WINDOW | 外层背压（可选；默认靠 TCP） |
 
-### 7.3 内层多路复用（Noise 明文内）
+### 2.3 内层多路复用（Noise 明文内）
 
 ```
 +--------+--------+--------+--------+----------------+--------+
@@ -215,7 +215,7 @@ Controller                     Server                        Agent
 - 每条流独立 `seq`，接收方校验单调；乱序丢弃并 `RESET`。
 - 最多 64 条并发流；每条流独立流控，防止大响应饿死交互流。
 
-### 7.6 断线、恢复与关闭
+### 2.4 断线、恢复与关闭
 
 | 场景 | 行为 |
 | --- | --- |

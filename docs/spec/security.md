@@ -1,8 +1,8 @@
-# 安全分析
+﻿# 安全分析
 
-> Puppetry 协议规范章节（原 `puppetry-framework.md` 拆分）。目录与阅读约定见 [README.md](./README.md)。章节号沿用原文档，便于交叉引用。
+> 前置阅读：[architecture.md](./architecture.md)；完整顺序见 [README.md](./README.md)。
 
-## 12. 安全分析
+## 1. 安全分析
 
 | 威胁 | 缓解 | 残余风险 |
 | --- | --- | --- |

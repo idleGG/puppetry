@@ -227,7 +227,7 @@ Release 里可以附上 `dsh-puppet-0.2.2.zip`，并写清楚 DSH 版本要求�
 
 ### 3.1 方案 A：Lite Relay 部署在 PHP 虚拟主机（最省成本）
 
-适合已有阿里云/腾讯云虚拟主机、只有 PHP + MySQL 的情况。按设计文档 §8.7–8.13 实现/部署：
+适合已有阿里云/腾讯云虚拟主机、只有 PHP + MySQL 的情况。按协议规范 [server-design.md](../../../docs/spec/server-design.md) 实现/部署：
 
 1. 域名解析：`thread.example.com` → 虚拟主机 IP。
 2. 开启 HTTPS（主机面板申请免费证书，强制 HTTPS）。
@@ -251,7 +251,7 @@ Release 里可以附上 `dsh-puppet-0.2.2.zip`，并写清楚 DSH 版本要求�
    ```
    `allowInsecureHttp` 设为 false。
 
-**当前状态**：生产级 PHP Lite 实现见 `un-halt.com/thread/`（Lite Relay / L1，PHP 7.4+ + MySQL）；本仓库另含 `scripts/mock-relay.mjs` 用于本地联调，不要把 mock 暴露到公网。
+**当前状态**：Lite 服务端的协议规范见本仓库协议文档 `docs/spec/server-design.md`（Lite Relay / L1）；本仓库另含 `scripts/mock-relay.mjs` 用于本地联调，不要把 mock 暴露到公网。
 
 ### 3.2 方案 B：Full Relay 部署在 VPS（推荐，支持隧道/流式）
 
