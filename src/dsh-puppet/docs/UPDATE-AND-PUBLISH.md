@@ -51,7 +51,7 @@ dsh:remote                        ❌ 冒号（也会破坏 loader id）
 如果你当初这样安装：
 
 ```powershell
-dsh plugin --profile desktop add link:D:\Users\lfgsu\Documents\Projects\Puppetry\dsh-puppet
+dsh plugin --profile desktop add link:D:\Users\lfgsu\Documents\Projects\Puppetry\src\dsh-puppet
 ```
 
 profile 里的 `node_modules/dsh-puppet` 是指向源码目录的链接，**改磁盘上的源码就是改插件**。
@@ -80,7 +80,7 @@ profile 里的 `node_modules/dsh-puppet` 是指向源码目录的链接，**改�
 如果 `link:` 没有生效（例如之前用 `file:` 或 npm 装过），重新执行一次：
 
 ```powershell
-dsh plugin --profile desktop add link:D:\Users\lfgsu\Documents\Projects\Puppetry\dsh-puppet
+dsh plugin --profile desktop add link:D:\Users\lfgsu\Documents\Projects\Puppetry\src\dsh-puppet
 ```
 
 ### 1.2 npm 安装
@@ -171,7 +171,7 @@ npm view dsh-puppet version
 ### 2.2 npm 发布步骤
 
 ```powershell
-cd D:\Users\lfgsu\Documents\Projects\Puppetry\dsh-puppet
+cd D:\Users\lfgsu\Documents\Projects\Puppetry\src\dsh-puppet
 npm login
 npm whoami
 npm publish --access public
