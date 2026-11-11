@@ -73,6 +73,7 @@ export class RemoteAgent {
     this.results = new Map()
     this.digest = { epoch: 1, rev: 0, hash: '', count: 0 }
     this.messageCache = new Map()
+    this.modelCache = { at: 0, models: { groups: [], default: null } }
     this.kickRequested = false
     this.kickResolve = null
     this.pairing = new PairingManager({ store, agent: this, log })
@@ -357,6 +358,13 @@ export class RemoteAgent {
     }
   }
 
+  async modelList() {
+    if (Date.now() - this.modelCache.at < 600000) return this.modelCache.models
+    const models = await this.adapter.listModels()
+    this.modelCache = { at: Date.now(), models }
+    return models
+  }
+
   async heartbeat() {
     this.seq += 1
     const acks = this.acks.splice(0)
@@ -370,8 +378,9 @@ export class RemoteAgent {
       ts: Date.now(),
       presence: 'online',
       version: { agent: PLUGIN_VERSION, dsh: process.env.DSH_VERSION ?? '0.2.x', protocol: PROTOCOL_VERSION },
-      caps: ['mailbox', 'snapshot', 'sig-v1', 'keep-awake'],
+      caps: ['mailbox', 'snapshot', 'sig-v1', 'keep-awake', 'models'],
       limits: { max_cmd: 65536, max_result: 65536, max_streams: 0 },
+      models: await this.modelList(),
       digest: {
         epoch: this.digest.epoch,
         rev: this.digest.rev,
@@ -475,6 +484,7 @@ export class RemoteAgent {
             sessionId: String(payload.session_id ?? ''),
             text: String(payload.text ?? ''),
             commandId,
+            model: payload.model,
           })
           return { ok: true, data }
         }

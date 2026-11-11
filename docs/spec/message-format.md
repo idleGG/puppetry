@@ -1,4 +1,4 @@
-﻿# 消息格式与控制面/数据面协议
+# 消息格式与控制面/数据面协议
 
 > 前置阅读：[e2e-encryption.md](./e2e-encryption.md)；完整顺序见 [README.md](./README.md)。
 
@@ -23,6 +23,15 @@ Content-Type: application/cbor            # Lite: application/json
   "version": { "agent": "0.1.0", "dsh": "0.2.1", "protocol": "1.0" },
   "caps": ["mailbox", "tunnel", "sealed-meta", "approval", "project.create"],
   "limits": { "max_cmd": 65536, "max_result": 262144, "max_streams": 64 },
+  "models": {                          // 受控端可用模型，按 provider 分组（明文，同 caps/limits 非敏感）
+    "default": { "provider": "deepseek", "model": "deepseek-chat" },
+    "groups": [
+      { "id": "deepseek", "name": "DeepSeek", "models": [
+        { "id": "deepseek-chat", "name": "DeepSeek Chat" },
+        { "id": "deepseek-reasoner", "name": "DeepSeek Reasoner" }
+      ] }
+    ]
+  },
   "digest": { "epoch": 3, "rev": 57, "hash": "sha256:...", "count": 12 },
   "active": { "running": 1, "tunnel": null },
   "health": { "cpu": 0.18, "mem": 0.42, "disk_free": 123456789012 },

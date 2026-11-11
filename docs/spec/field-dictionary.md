@@ -1,4 +1,4 @@
-﻿# 字段字典：端点、方法、事件、数据模型与指令
+# 字段字典：端点、方法、事件、数据模型与指令
 
 > 速查文档，可按需查阅；完整顺序见 [README.md](./README.md)。
 
@@ -196,7 +196,7 @@ SQLite 注意：开启 WAL、`busy_timeout=5000`，写事务用 `BEGIN IMMEDIATE
 | `type` | 明文载荷 | 结果 | scope |
 | --- | --- | --- | --- |
 | `agent.ping` | `{nonce}` | `{pong, agent_time}` | `presence` |
-| `session.prompt` | `{session_id, text, delivery?}` | `{accepted, turn_id}` | `session.prompt` |
+| `session.prompt` | `{session_id, text, model?, delivery?}` | `{accepted, turn_id}` | `session.prompt` |
 | `session.cancel` | `{session_id}` | `{cancelled}` | `session.cancel` |
 | `session.rename` | `{session_id, title}` | `{}` | `session.organize` |
 | `session.archive` | `{session_id, stop?}` | `{}` | `session.organize` |
@@ -209,5 +209,30 @@ SQLite 注意：开启 WAL、`busy_timeout=5000`，写事务用 `BEGIN IMMEDIATE
 | `binding.revoke` | `{binding_id}` | `{}` | `admin`（仅 Agent UI 或 admin 控制端） |
 | `key.rotate` | `{epoch, wrapped_keys[]}` | `{}` | 内部 |
 
+- `session.prompt` 的 `model` 为可选对象 `{provider, model}`：控制端从心跳上报的模型列表（按 provider 分组）中选择；缺省时受控端沿用该会话当前模型。受控端执行前先 `selectModel`（等价 DSH 会话级选模型），不可用则返回 `session/model-unavailable`。
+- `session.create` 的 `model` 同理，用于新建会话时指定初始模型。
+
 > **Lite 允许的指令子集**：`agent.ping`、`session.prompt`、`session.cancel`、`session.rename`、`session.archive`、`approval.respond`、`question.respond`、`session.create`、`session.snapshot`、`env.info`；`project.create` 需 PC 本地确认且默认关闭。`session.snapshot` 用于 gap 恢复/全量补偿；Lite 的流式主路径是**快照上传 + 增量拉取**（[server-design.md](./server-design.md)），不是指令轮询。
+
+## 7. 任务生命周期 / 调度 / 触发（潜在功能设计）
+
+> 以下为**规划中的指令层**（v2），当前 L1/Lite 参考实现未包含；先冻结线协议语义，供后续实现。任务（task）承载一次可观察进度/产物的长时间执行；调度（schedule）在受控端本地按 cron 规则触发；触发器（trigger）由事件或手动触发一次执行。
+
+| `type` | 明文载荷 | 结果 | scope |
+| --- | --- | --- | --- |
+| `task.list` | `{status?, limit?}` | `{tasks[]}` | `task.read` |
+| `task.get` | `{task_id}` | `{task}` | `task.read` |
+| `task.cancel` | `{task_id}` | `{cancelled}` | `task.write` |
+| `task.result` | `{task_id, since?}` | `{status, progress, products[]}` | `task.read` |
+| `schedule.list` | `{}` | `{schedules[]}` | `schedule.read` |
+| `schedule.create` | `{cron, task, enabled?}` | `{schedule_id}` | `schedule.write` |
+| `schedule.update` | `{schedule_id, cron?, task?, enabled?}` | `{}` | `schedule.write` |
+| `schedule.delete` | `{schedule_id}` | `{}` | `schedule.write` |
+| `trigger.fire` | `{trigger_id, params?}` | `{run_id}` | `trigger.write` |
+| `trigger.status` | `{trigger_id}` | `{enabled, last_run, next_run}` | `trigger.read` |
+
+- **任务生命周期**：`created → queued → running → done / error / cancelled`；`task.result` 轮询进度与产物（产物引用 `product_ref`，大产物走附件分块）。
+- **调度器**：`schedule.*` 的 `cron` 为 5 段 cron 表达式（受控端本地时区）；调度执行结果以任务形式体现（`schedule.create` 的 `task` 即任务定义模板）。
+- **触发器**：`trigger.fire` 手动触发一次；事件触发（如「任务完成」「收到指令」）作为后续扩展，事件类型在 `capabilities` 中协商。
+- 全部复用 `session.prompt` 的 HPKE Auth 信封与 `ctr/exp/mid` 可靠性语义；scope 需在配对时显式授予（默认不含 `task.*` / `schedule.*` / `trigger.*`）。
 

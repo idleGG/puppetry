@@ -121,12 +121,19 @@ export class DshAdapter {
     }
   }
 
-  async prompt({ sessionId, text, commandId }) {
+  async prompt({ sessionId, text, commandId, model }) {
     if (typeof text !== 'string' || text.trim().length === 0) {
       throw Object.assign(new Error('prompt text must not be empty'), { code: 'bad_request' })
     }
     const controller = this.requireSessionController()
     const requestId = commandId
+    if (model && typeof model === 'object' && model.provider && model.model) {
+      try {
+        await controller.selectModel({ sessionId, provider: model.provider, model: model.model })
+      } catch (error) {
+        throw Object.assign(new Error(`model unavailable: ${error.message}`), { code: 'session/model-unavailable' })
+      }
+    }
     await controller.prompt(
       {
         requestId,
@@ -137,6 +144,45 @@ export class DshAdapter {
       AbortSignal.timeout(20000),
     )
     return { accepted: true }
+  }
+
+  /**
+   * 受控端可用模型列表（按 provider 分组），用于心跳上报给控制端选择。
+   * 依赖 DSH 的 llm registry：ctx.llm.listProviders() + ctx.llm.listModels(providerId)。
+   */
+  async listModels() {
+    const llm = this.ctx.llm ?? this.ctx.get?.('llm')
+    if (!llm || typeof llm.listProviders !== 'function') {
+      return { groups: [], default: null }
+    }
+    let defaultSel = null
+    try {
+      defaultSel = this.ctx.agentDefaultModel?.currentSelection?.() ?? null
+    } catch {
+      defaultSel = null
+    }
+    const groups = []
+    try {
+      for (const provider of llm.listProviders()) {
+        const providerId = provider?.id
+        if (!providerId) continue
+        try {
+          const models = await llm.listModels(providerId)
+          if (Array.isArray(models) && models.length) {
+            groups.push({
+              id: providerId,
+              name: provider?.name ?? providerId,
+              models: models.map((m) => ({ id: m.id, name: m.name ?? m.id })),
+            })
+          }
+        } catch {
+          // 单个 provider 失败不影响其它 provider。
+        }
+      }
+    } catch {
+      // llm registry 不可用时返回空列表。
+    }
+    return { groups, default: defaultSel }
   }
 
   async cancel(sessionId) {
