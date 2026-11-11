@@ -2,11 +2,12 @@
 
 DeepSeek Harness 的受控端插件：把本机 DSH 的在线状态、会话摘要和任务指令，通过一个零知识的公网中继/轻量 Web 站点与手机或网页控制端连接起来。服务端只转发密文，不持有内容密钥。
 
-这是 [Puppetry 协议规范](../../docs/spec/README.md) 的受控端参考实现（v0.2），目标是 **L1（心跳 + 指令邮箱）**：
+这是 [Puppetry 协议规范](../../docs/spec/README.md) 的受控端参考实现（v0.3），目标是 **L1（心跳 + 指令邮箱）**：
 
 - 扫码 / 拷贝 token 绑定：设置页展示二维码或 token，控制端取得受控端信息后把身份以 HPKE 加密经心跳回传，Agent 自动建绑定。
-- 周期心跳：在线状态、会话摘要（默认只上报 id/状态/时间，不含标题）、指令结果。
+- 周期心跳：在线状态、会话摘要（配对后为密封模式，含标题/路径/最近消息；未配对只上报 id/状态/时间）、**可用模型列表（按 provider 分组）**、指令结果。
 - 指令邮箱：控制端把 HPKE 加密的指令提交到服务端，Agent 在心跳响应里取回、执行、回传加密结果。
+- **模型选择**：心跳上报 `models.groups`；控制端发 `session.prompt` 时可携带 `model: {provider, model}`，Agent 先做会话级 `selectModel` 再发指令。
 - 本地设置页：首次运行自动打开，之后随时用 `/puppet-settings` 打开；支持 **中文 / English** 切换，默认跟随浏览器语言并记住选择。
 - 保持唤醒：Windows `SetThreadExecutionState`、macOS `caffeinate`、Linux `systemd-inhibit`，支持 `off / task / always` 三档。
 - 无隧道：`session.snapshot` 提供有界的批量事件快照（受心跳间隔限制）；完整流式/`env.watch` 仍需 L2 Full Relay。
@@ -14,7 +15,8 @@ DeepSeek Harness 的受控端插件：把本机 DSH 的在线状态、会话摘�
 ## 安装
 
 ```bash
-dsh plugin --profile desktop add link:/path/to/dsh-puppet
+# link 到本地源码（推荐开发用；路径按实际仓库位置）
+dsh plugin --profile desktop add link:D:\Users\lfgsu\Documents\Projects\Puppetry\src\dsh-puppet
 ```
 
 或发布到 npm 后：
@@ -22,6 +24,8 @@ dsh plugin --profile desktop add link:/path/to/dsh-puppet
 ```bash
 dsh plugin --profile desktop add dsh-puppet
 ```
+
+> DSH `0.2.1-rc.x` 起 `--profile <名称>` 为必填，且要放在 `plugin` 与子命令之间；本机桌面端的 profile 名通常是 `desktop`（见 `~/.dsh/profiles/`）。
 
 安装后**完全退出并重开 DSH**（HMR 只热更配置，不会重新 import 插件）。
 
@@ -102,7 +106,7 @@ dsh plugin --profile desktop add dsh-puppet
 
 `identity.json` 里的私钥不会上传；丢失即换 `agent_id`，需要重新绑定。
 
-## 绑定控制端（v0.2）
+## 绑定控制端（v0.3）
 
 设置页的「绑定控制端」卡片提供**两种方式**，任选其一，二者共用同一套邀约/响应协议（见协议规范 [identity-pairing.md](../../docs/spec/identity-pairing.md)）：
 
@@ -127,7 +131,7 @@ dsh plugin --profile desktop add dsh-puppet
 支持的指令（明文在 HPKE 内，服务端不可见）：
 
 - `agent.ping`
-- `session.prompt` / `session.cancel` / `session.rename` / `session.archive`
+- `session.prompt`（可选 `model: {provider, model}` 指定模型，从心跳上报的模型列表中选择；缺省跟随会话当前模型）/ `session.cancel` / `session.rename` / `session.archive`
 - `session.create`（受 `allowRemoteCreate` / `allowedRoots` 限制）
 - `session.snapshot`（Lite 的流式降级）
 - `env.info`
@@ -167,17 +171,17 @@ Windows 上 `powercfg /requests` 需要管理员权限才能查看；插件状�
 
 ## 测试
 
-用内置 mock 中继和测试控制端（需要 Node 24）：
+用内置 mock 中继和测试控制端（需要 Node 24）。以下命令均从仓库根目录执行：
 
 ```bash
-node dsh-puppet/scripts/mock-relay.mjs
+node src/dsh-puppet/scripts/mock-relay.mjs
 ```
 
 把设置页的 relay 设为 `http://127.0.0.1:8787`，然后：
 
 ```bash
 SETUP_BASE=http://127.0.0.1:<dsh-web-port> \
-  node dsh-puppet/scripts/test-controller.mjs
+  node src/dsh-puppet/scripts/test-controller.mjs
 ```
 
 `TEST_TYPE=env.info|session.create|session.prompt|session.snapshot` 可切换指令；结果写到 `_controller-result.txt`。
@@ -187,7 +191,7 @@ SETUP_BASE=http://127.0.0.1:<dsh-web-port> \
 ```bash
 SETUP_BASE=http://127.0.0.1:<dsh-web-port> \
 MOCK_BASE=http://127.0.0.1:8787 \
-  node dsh-puppet/scripts/test-qr-pair.mjs
+  node src/dsh-puppet/scripts/test-qr-pair.mjs
 ```
 
 单元测试：
@@ -198,9 +202,10 @@ node --test test/*.test.js
 
 覆盖：RFC 8439 ChaCha20-Poly1305 向量、HPKE Auth/Base 往返、扫码/拷贝 token 邀约绑定、Binding 签名、指令/结果信封、重放拒绝、摘要/配置持久化、快照缓冲、设置页结构与中英文词典。
 
-## 已知限制（v0.2）
+## 已知限制（v0.3）
 
 - 没有 WebSocket 隧道；`session.snapshot` 走心跳邮箱，延迟等于心跳间隔（15–30s），不是真正的流。
+- 模型列表依赖 DSH 宿主的 `llm` registry；宿主未注入时安全降级为空列表（控制端不显示模型选择，不影响心跳与其它指令）。
 - 没有远端审批/提问应答；审批仍在 PC 本地完成。
 - 没有客户端设置侧边栏；入口是 `/puppet-settings` 和书签 URL。
 - 服务端需要按设计文档实现 `Puppetry1-Sig`、`/v1/*`（含 `/v1/pairings/*`）与 HPKE 不可见存储；本仓库只含 Agent 与 mock。
