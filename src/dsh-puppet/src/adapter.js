@@ -148,16 +148,24 @@ export class DshAdapter {
 
   /**
    * 受控端可用模型列表（按 provider 分组），用于心跳上报给控制端选择。
-   * 依赖 DSH 的 llm registry：ctx.llm.listProviders() + ctx.llm.listModels(providerId)。
+   * 依赖 DSH 的 llm registry：ctx.get('llm').listProviders() + listModels(providerId)。
+   * 注意：llm / agentDefaultModel 是注入服务，直接属性访问在未注入时会抛
+   * "cannot get property ... without inject"，统一走 ctx.get() 服务定位并兜底。
    */
   async listModels() {
-    const llm = this.ctx.llm ?? this.ctx.get?.('llm')
+    let llm
+    try {
+      llm = this.ctx.get?.('llm')
+    } catch {
+      llm = undefined
+    }
     if (!llm || typeof llm.listProviders !== 'function') {
       return { groups: [], default: null }
     }
     let defaultSel = null
     try {
-      defaultSel = this.ctx.agentDefaultModel?.currentSelection?.() ?? null
+      const adm = this.ctx.get?.('agentDefaultModel')
+      defaultSel = adm?.currentSelection?.() ?? null
     } catch {
       defaultSel = null
     }
