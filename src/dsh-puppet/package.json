@@ -2,6 +2,11 @@
   "name": "dsh-puppet",
   "version": "0.3.1-rc.3",
   "description": "Puppet: the Puppetry controlled end (受控端) for DeepSeek Harness — QR / token pairing, heartbeat mailbox, end-to-end encrypted commands, keep-awake, and a bilingual local setup page.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/idleGG/puppetry.git",
+    "directory": "src/dsh-puppet"
+  },
   "type": "module",
   "main": "src/index.js",
   "exports": {
