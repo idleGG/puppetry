@@ -69,16 +69,17 @@ dsh plugin --profile <profile> add link:/path/to/src/dsh-puppet
 | 能力 | 状态 |
 | --- | --- |
 | 常驻、多控制端、E2EE、离线排队、工具 / 审批 | ✅ 已具备（L0 / L1） |
+| 受控端模型列表上报、prompt 指定模型 | ✅ 已具备（心跳 `models` + `session.prompt.model`） |
 | 实时流、实时对话、事件推送 | ⚠️ 规范已定义（L2 隧道见 [architecture.md](docs/spec/architecture.md)，长轮询与推送见 [message-format.md](docs/spec/message-format.md)），实现待补 |
-| 任务生命周期（进度 / 产物 / 取消） | ❌ 需在信封明文新增 `task.*` 指令层 |
-| 调度 / 触发器（cron 类） | ❌ 需新增 `schedule.*` 指令层（受控端本地调度） |
+| 任务生命周期（进度 / 产物 / 取消） | ⚠️ 规范已定义（`task.*` 指令层，见 [field-dictionary.md](docs/spec/field-dictionary.md) §7），实现待补 |
+| 调度 / 触发器（cron 类） | ⚠️ 规范已定义（`schedule.*` / `trigger.*`，见 [field-dictionary.md](docs/spec/field-dictionary.md) §7），实现待补 |
 | 跨会话记忆 | ⚠️ 主要落在受控端（DSH 侧），协议需暴露 `memory.*` 资源 |
 | 附件 / 文件 | ❌ 已在 [architecture.md](docs/spec/architecture.md) 预留 v2（分块 + 隧道直传） |
 
 ### 演进路径
 
 1. **M2 实时化**：实现 L2 隧道（WSS + Noise IK + mux），打通实时流 / 实时对话 / 事件通知——这是从「远程控制台」到「个人助理」的分水岭。
-2. **M3 任务化**：信封明文新增 `task.*` / `schedule.*` / `memory.*`；受控端加任务状态机与调度器。
+2. **M3 任务化**：实现已设计的 `task.*` / `schedule.*` / `trigger.*` 指令层（协议见 [field-dictionary.md](docs/spec/field-dictionary.md) §7）与 `memory.*`；受控端加任务状态机与调度器。
 3. **M4 体验化**：服务端 Web Push、控制端通知 UI、附件分块（v2）。
 4. 全程保持能力协商：Lite 继续可部署，控制端 / 受控端按 `features`（`tunnel` / `long_poll` / `push`）自动降级（见 [server-design.md](docs/spec/server-design.md)、[plugin-framework.md](docs/spec/plugin-framework.md)）。
 
