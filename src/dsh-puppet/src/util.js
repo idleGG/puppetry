@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 
 export const PROTOCOL_VERSION = '1.0'
-export const PLUGIN_VERSION = '0.3.0'
+export const PLUGIN_VERSION = '0.3.1'
 export const SUITE = 'X25519-HKDF-SHA256-CHACHA20POLY1305'
 export const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000
 
