@@ -6,6 +6,8 @@ name: publish-dsh-puppet
 #   Repository name:  puppetry
 #   Workflow file name: publish-dsh-puppet.yml（必须与本文件名完全一致）
 # 触发：推送形如 dsh-puppet/v0.3.0 的 tag（预发布用 dsh-puppet/v0.4.0-rc.1）。
+# 版本要求：npm CLI ≥ 11.5.1（Trusted Publishing 官方最低版本；Node 22 自带的
+#   npm 10.x 只会用 OIDC 签 provenance，发布鉴权仍走 token 路径，无 token 即 404）。
 # 详见仓库文档 src/dsh-puppet/docs/UPDATE-AND-PUBLISH.md。
 
 on:
@@ -35,8 +37,16 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
-          # 不配置 node-auth-token：Trusted Publishing 走 OIDC，不需要长期 token。
+          # 刻意不设置 registry-url：它会生成 .npmrc 里的
+          # //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}，
+          # 空 token 会让 npm 先走 token 鉴权路径而不落到 OIDC Trusted Publishing。
+          # npm 默认 registry 本来就是 registry.npmjs.org，无需显式指定。
+
+      - name: Upgrade npm to >= 11.5.1 (Trusted Publishing 的最低版本要求)
+        run: |
+          echo "before: node $(node --version), npm $(npm --version)"
+          npm install -g npm@^11.5.1
+          echo "after : node $(node --version), npm $(npm --version)"
 
       - name: Run unit tests
         run: npm test
