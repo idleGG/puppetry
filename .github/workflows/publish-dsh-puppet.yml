@@ -41,6 +41,11 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: DEBUG 打印 OIDC 身份声明（排查 Trusted Publisher 404，完成后删除本步）
+        run: |
+          TOKEN_RESP="$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm")"
+          echo "$TOKEN_RESP" | python3 -c "import sys,json,base64; t=json.load(sys.stdin)['value']; p=t.split('.')[1]; p+='='*(-len(p)%4); c=json.loads(base64.urlsafe_b64decode(p)); print('=== OIDC claims (aud=npm) ==='); print(json.dumps(c,indent=2,ensure_ascii=False)); print('=== 需与 npm 后台逐字匹配 ==='); print('repository_owner =',repr(c.get('repository_owner'))); print('repository =',repr(c.get('repository'))); print('workflow =',repr(c.get('workflow'))); print('job_workflow_ref =',repr(c.get('job_workflow_ref'))); print('environment =',repr(c.get('environment')))"
+
       - name: Resolve and verify version from tag
         id: meta
         if: github.event_name == 'push'
